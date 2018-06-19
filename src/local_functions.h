@@ -22,4 +22,4 @@ std::vector<cv::Point3f> lqr_solver(Eigen::MatrixXf, Eigen::MatrixXf, float, flo
 
 cv::Point3_<float> find_escape(std::bitset<4>&, cv::Point3_<float>, std::vector<float>, float, cv::Mat&, cv::Mat&, cv::Mat&, cv::Mat&);
 
-cv::Mat img_crop(std::vector<float>, cv::Mat&, cv::Mat&, cv::Mat&, int);
+float* img_crop(cv::Mat&);

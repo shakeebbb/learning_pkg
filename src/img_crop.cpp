@@ -5,9 +5,12 @@
 using namespace cv;
 using namespace std;
 
-Mat img_crop(vector<float> odometry, Mat& projectionMatrix, Mat& distortionVector, Mat& imgDepth, int safetyRadius)
+bool myfn(int i, int j) { return i<j; }
+
+float* img_crop(Mat& imgDepth)
 {
 
+/*
 int distVar = 5;
 vector<Point3f> rectanglePoints_v;
 
@@ -42,6 +45,33 @@ rectanglePoints_v.push_back( Point3f(-safetyRadius, safetyRadius, distVar)); // 
   Rect myROI(0, rectanglePoints_i[1].y, imgDepth.rows, rectanglePoints_i[0].y - rectanglePoints_i[1].y);
 
   Mat croppedImage = imgDepth(myROI);
- 
-  return croppedImage;
+*/
+
+int scanLocation = imgDepth.rows / 2; // vertical pixel location to extract values
+float scan[imgDepth.cols];
+
+/*
+for (int i = 0; i < imgDepth.cols; i++)
+{
+	for (int j = 0; j < imgDepth.rows; j++)
+	{
+	temp[j] = imgDepth.at<float>(j,i);
+	}
+	scan[i] = *max_element(temp, temp+imgDepth.rows,myfn);
+
 }
+*/
+
+for (int i = 0; i < imgDepth.cols; i++)
+{
+  scan[i] = imgDepth.at<float>(scanLocation,i);
+  //cout << scanLocation << endl;
+  //cout << i << endl;
+	//cout << scan[i] << endl;
+	//getchar();
+}
+
+  return scan;
+}
+
+

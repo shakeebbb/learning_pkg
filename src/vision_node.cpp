@@ -70,8 +70,8 @@ void init();
 
 int main(int argc, char **argv)
 {
- 	cv::namedWindow( "imgdepth");// Create a window for display.
-	cv::startWindowThread();
+ 	//cv::namedWindow( "imgdepth");// Create a window for display.
+	//cv::startWindowThread();
 
 	init();
 
@@ -209,12 +209,12 @@ void timerCallback(const ros::TimerEvent&)
 void depthCallback(const sensor_msgs::Image& msg)
 {
 
-	if(flightMode != 2)
-	{
-	string s = msg.encoding;
-        ROS_INFO("%s", s.c_str());
-	return;
-	}
+	//if(flightMode != 2)
+	//{
+	//string s = msg.encoding;
+       // ROS_INFO("%s", s.c_str());
+	//return;
+	//}
 
 Mat imgDepth; //depth map
 
@@ -223,11 +223,14 @@ ptr = cv_bridge::toCvCopy(msg,"mono8");
 imgDepth = ptr->image.clone();
 
 int safetyRadius = 0.5;
-Mat croppedDepth; //depth map
-croppedDepth = img_crop(currentOdometry, projectionMatrix, distortionVector, imgDepth, safetyRadius);
 
-cv::imshow( "imgdepth", croppedDepth );                   // Show our image inside it.
-waitKey(1);
+Mat croppedDepth; //depth map
+img_crop(imgDepth);
+
+//imgPub.publish(ptr->toImageMsg());
+
+//cv::imshow( "imgdepth", croppedDepth );                   // Show our image inside it.
+//waitKey(1);
 
 //trajectory.push_back(Point3f(2,0,1));
 //trajectory.push_back(Point3f(2.5,1.5,1));  
@@ -286,7 +289,7 @@ ros::Time currenttime=ros::Time::now();
 ros::Duration diff = currenttime - lasttime;
 cout << " TIME TAKEN (s) : " << diff << endl;
 
-imgPub.publish(ptr->toImageMsg());
+//imgPub.publish(ptr->toImageMsg());
 
 	//cv::imshow( "imgdepth", imgDepth );                   // Show our image inside it.
 	//waitKey(1);

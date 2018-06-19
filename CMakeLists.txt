@@ -135,7 +135,7 @@ include_directories(
 )
 
 ## Declare a C++ library
- #add_library(point2collision src/point2collision.cpp)
+ add_library(point2collision src/point2collision.cpp)
  add_library(waypoints2collision src/waypoints2collision.cpp)
  add_library(cspace2collision src/cspace2collision.cpp)
  add_library(traj_gen src/traj_gen.cpp)
@@ -171,8 +171,8 @@ include_directories(
    ${catkin_LIBRARIES}
    ${OpenCV_LIBS}
     traj_gen
-   	waypoints2collision
-		cspace2collision
+    waypoints2collision
+    cspace2collision
     img_crop
  )
  
