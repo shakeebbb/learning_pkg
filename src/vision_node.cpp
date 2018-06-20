@@ -7,6 +7,7 @@
 #include "local_functions.h"
 #include "nav_msgs/Odometry.h"
 #include "std_msgs/Int32.h"
+#include "std_msgs/String.h"
 
 #include <stdio.h>
 
@@ -36,6 +37,7 @@ bool doEscape = 1;
 
 ros::Publisher posePub;
 ros::Publisher imgPub;
+ros::Publisher instructPub;
 
 bool camInfo_isUpdated = 0;
 bool odom_isUpdated = 0;
@@ -66,6 +68,7 @@ void timerCallback(const ros::TimerEvent&);
 void flightModeCallback(const std_msgs::Int32&);
 bool isBounded(geometry_msgs::PoseStamped&);
 void setpoint_cb(const geometry_msgs::PoseStamped&);
+void localInstructCallback(const std_msgs::String&);
 void init();
 
 int main(int argc, char **argv)
@@ -84,9 +87,11 @@ int main(int argc, char **argv)
 	ros::Subscriber camInfoSub = n.subscribe("/iris/vi_sensor/camera_depth/camera/camera_info", 100, camInfoCallback);
 	ros::Subscriber odomSub = n.subscribe("/iris/vi_sensor/ground_truth/odometry", 100, odomCallback);
 	ros::Subscriber modeSub = n.subscribe("/flight_mode", 10, flightModeCallback);
+	ros::Subscriber instructSub = n.subscribe("/local_instruct", 10, localInstructCallback);
 	ros::Subscriber setpoint_sub = n.subscribe("/iris/command/pose", 10, setpoint_cb);
 
 	// Publishers
+	instructPub = n.advertise<std_msgs::String>("/local_instruct" ,10);
 	posePub = n.advertise<geometry_msgs::PoseStamped>("/iris/command/pose" ,100);
 	imgPub = n.advertise<sensor_msgs::Image>("/labeled_image" ,100);
 
@@ -111,7 +116,7 @@ int main(int argc, char **argv)
 
 void init()
 {
-remove("/home/nvidia/ros_ws/src/vision_pkg/logs/flight_logs.txt");
+remove("/home/marhes/vision_ws/src/learning_pkg/logs/flight_logs.txt");
 }
 
 bool isBounded(geometry_msgs::PoseStamped& point)
@@ -161,8 +166,8 @@ return val;
 
 void timerCallback(const ros::TimerEvent&)
 {
-	if(flightMode != 2)
-	return;
+	//if(flightMode != 2)
+	//return;
 
 	cout << " Timer Callback Called **************************************************************" << endl;
 
@@ -170,6 +175,10 @@ void timerCallback(const ros::TimerEvent&)
 	{
 	lastCommandPose.header.stamp = ros::Time::now();
 	posePub.publish(lastCommandPose);
+
+	std_msgs::String instruction;
+	instruction.data = "c2py:waiting4action";
+	instructPub.publish(instruction);
 
 	cout << "End of Trajectory" << endl;
 	//currentTrajectory.clear();
@@ -208,7 +217,7 @@ void timerCallback(const ros::TimerEvent&)
 
 void depthCallback(const sensor_msgs::Image& msg)
 {
-
+return;
 	//if(flightMode != 2)
 	//{
 	//string s = msg.encoding;
@@ -403,4 +412,8 @@ flightMode = msg.data;
 void setpoint_cb(const geometry_msgs::PoseStamped& msg)
 {
 	lastCommandPose = msg;
+}
+
+void localInstructCallback(const std_msgs::String& msg)
+{
 }
