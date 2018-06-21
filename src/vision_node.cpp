@@ -8,7 +8,10 @@
 #include "nav_msgs/Odometry.h"
 #include "std_msgs/Int32.h"
 #include "std_msgs/String.h"
+<<<<<<< HEAD
 #include "learning_pkg/Learn.h"
+=======
+>>>>>>> 07e82dd41f707a1ae38a81164d30bfe47f9b889f
 
 #include <stdio.h>
 
@@ -38,7 +41,11 @@ bool doEscape = 1;
 
 ros::Publisher posePub;
 ros::Publisher imgPub;
+<<<<<<< HEAD
 ros::Publisher commPub;
+=======
+ros::Publisher instructPub;
+>>>>>>> 07e82dd41f707a1ae38a81164d30bfe47f9b889f
 
 bool camInfo_isUpdated = 0;
 bool odom_isUpdated = 0;
@@ -69,7 +76,11 @@ void timerCallback(const ros::TimerEvent&);
 void flightModeCallback(const std_msgs::Int32&);
 bool isBounded(geometry_msgs::PoseStamped&);
 void setpoint_cb(const geometry_msgs::PoseStamped&);
+<<<<<<< HEAD
 void localCommCallback(const learning_pkg::Learn&);
+=======
+void localInstructCallback(const std_msgs::String&);
+>>>>>>> 07e82dd41f707a1ae38a81164d30bfe47f9b889f
 void init();
 
 int main(int argc, char **argv)
@@ -88,11 +99,19 @@ int main(int argc, char **argv)
 	ros::Subscriber camInfoSub = n.subscribe("/iris/vi_sensor/camera_depth/camera/camera_info", 100, camInfoCallback);
 	ros::Subscriber odomSub = n.subscribe("/iris/vi_sensor/ground_truth/odometry", 100, odomCallback);
 	ros::Subscriber modeSub = n.subscribe("/flight_mode", 10, flightModeCallback);
+<<<<<<< HEAD
 	ros::Subscriber instructSub = n.subscribe("/local_communication", 10, localCommCallback);
 	ros::Subscriber setpoint_sub = n.subscribe("/iris/command/pose", 10, setpoint_cb);
 
 	// Publishers
 	commPub = n.advertise<std_msgs::String>("/local_instruct" ,10);
+=======
+	ros::Subscriber instructSub = n.subscribe("/local_instruct", 10, localInstructCallback);
+	ros::Subscriber setpoint_sub = n.subscribe("/iris/command/pose", 10, setpoint_cb);
+
+	// Publishers
+	instructPub = n.advertise<std_msgs::String>("/local_instruct" ,10);
+>>>>>>> 07e82dd41f707a1ae38a81164d30bfe47f9b889f
 	posePub = n.advertise<geometry_msgs::PoseStamped>("/iris/command/pose" ,100);
 	imgPub = n.advertise<sensor_msgs::Image>("/labeled_image" ,100);
 
@@ -177,6 +196,13 @@ void timerCallback(const ros::TimerEvent&)
 	lastCommandPose.header.stamp = ros::Time::now();
 	posePub.publish(lastCommandPose);
 
+<<<<<<< HEAD
+=======
+	std_msgs::String instruction;
+	instruction.data = "c2py:waiting4action";
+	instructPub.publish(instruction);
+
+>>>>>>> 07e82dd41f707a1ae38a81164d30bfe47f9b889f
 	cout << "End of Trajectory" << endl;
 	//currentTrajectory.clear();
 	return;
@@ -411,6 +437,7 @@ void setpoint_cb(const geometry_msgs::PoseStamped& msg)
 	lastCommandPose = msg;
 }
 
+<<<<<<< HEAD
 void localCommCallback(const learning_pkg::Learn& msg)
 {
 if (msg.instruction == "py2c:waiting4action?")
@@ -428,3 +455,8 @@ else if (msg.instruction == "py2c:action4you")
 
 
 
+=======
+void localInstructCallback(const std_msgs::String& msg)
+{
+}
+>>>>>>> 07e82dd41f707a1ae38a81164d30bfe47f9b889f

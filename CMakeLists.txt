@@ -14,7 +14,10 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   sensor_msgs
   std_msgs
+<<<<<<< HEAD
 	message_generation
+=======
+>>>>>>> 07e82dd41f707a1ae38a81164d30bfe47f9b889f
 )
 find_package(
 OpenCV REQUIRED
@@ -59,11 +62,19 @@ Eigen3 REQUIRED
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
+<<<<<<< HEAD
  add_message_files(
    FILES
    Learn.msg
 #   Message2.msg
  )
+=======
+# add_message_files(
+#   FILES
+#   Message1.msg
+#   Message2.msg
+# )
+>>>>>>> 07e82dd41f707a1ae38a81164d30bfe47f9b889f
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -80,11 +91,18 @@ Eigen3 REQUIRED
 # )
 
 ## Generate added messages and services with any dependencies listed here
+<<<<<<< HEAD
  generate_messages(
    DEPENDENCIES
    std_msgs
    #geometry_msgs#   sensor_msgs#   std_msgs
  )
+=======
+# generate_messages(
+#   DEPENDENCIES
+#   geometry_msgs#   sensor_msgs#   std_msgs
+# )
+>>>>>>> 07e82dd41f707a1ae38a81164d30bfe47f9b889f
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -118,7 +136,11 @@ Eigen3 REQUIRED
 catkin_package(
   #INCLUDE_DIRS include
   #LIBRARIES vision_pkg
+<<<<<<< HEAD
   # CATKIN_DEPENDS message_runtime cv_bridge geometry_msgs roscpp rospy sensor_msgs std_msgs
+=======
+  # CATKIN_DEPENDS cv_bridge geometry_msgs roscpp rospy sensor_msgs std_msgs
+>>>>>>> 07e82dd41f707a1ae38a81164d30bfe47f9b889f
 	# DEPENDS system_lib
 
 )
