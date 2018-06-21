@@ -4,20 +4,13 @@ import rospy
 import numpy
 from std_msgs.msg import String
 from sensor_msgs.msg import LaserScan
-<<<<<<< HEAD
 from learning_pkg.msg import Learn
-=======
->>>>>>> 07e82dd41f707a1ae38a81164d30bfe47f9b889f
 
 from keras.models import Sequential
 from keras.layers import Dense, Activation
 
-<<<<<<< HEAD
 bugHim = "py2py:bugging"
 comm_msg = Learn()
-=======
-scan = LaserScan();
->>>>>>> 07e82dd41f707a1ae38a81164d30bfe47f9b889f
 
 seed = 7
 numpy.random.seed(seed)
@@ -50,7 +43,6 @@ model2.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'
 
 print("NN model initialized ...")
 
-<<<<<<< HEAD
 def commCallback(msg):
 	global bugHim
 	bugHim = "py2py:wokeup"
@@ -106,62 +98,12 @@ def commCallback(msg):
 		msg.instruction = "py2c:waiting4action?"
 		msg.state = scan
 		commPub.publish(msg)
-=======
-def instructCallback(msg):
-
-	print scan
-	
-	if msg.data == "c2py:waiting4action":
-		rospy.loginfo(rospy.get_caller_id() + "I heard %s", msg.data)
-		
-	epsilon = numpy.random.binomial(n=1, p=0.8, size=None);
-	
-	if epsilon == 0 # explore random action
-		global action = random.randint(0,action_dim)
-		#Publish Action
-		#Publish Instruction
-		
-	else # choose the best action
-		model0_out = model0.predict(state)
-		model1_out = model1.predict(state)
-		model2_out = model2.predict(state)
-		
-		temp_array = [model0_out, model0_out, model0_out]
-		global action = temp_array.index(max(temp_array))
-		
-		global state = scan
-		
-		#Publish Action
-		#Publish Instruction
-		
-	if msg.data == "c2py:check4reward"
-	
-		# fill global reward i.e. r = ...
-		model0_out = model0.predict(state)
-		model1_out = model1.predict(state)
-		model2_out = model2.predict(state)
-		
-		Q* = max(model0_out, model0_out, model0_out)
-		
-		Q = r + gamma*(Q*)
-		
-		if global action == 0
-		model0.fit(state, Q, epochs=150, batch_size=10, verbose=2)
-		elif global action == 1
-		model1.fit(state, Q, epochs=150, batch_size=10, verbose=2)
-		elif global action == 2
-		model2.fit(state, Q, epochs=150, batch_size=10, verbose=2)
-		
-		#Publish Instruction / Acknowledgement
->>>>>>> 07e82dd41f707a1ae38a81164d30bfe47f9b889f
-		
 		
 def scanCallback(msg):
 	
 	global scan
 	scan = msg.ranges
 
-<<<<<<< HEAD
 def main ():
 
 	rospy.init_node('learn_node', anonymous=True)
@@ -181,23 +123,7 @@ def main ():
 			commPub.publish(comm_msg)
 		rate.sleep()
 		#rospy.spinOnce()
-=======
-def listener ():
-
-	rospy.init_node('learn_node', anonymous=True)
-	
-	rospy.Subscriber("local_instruct", String, instructCallback)
-	rospy.Subscriber("scan", LaserScan, scanCallback)
-	
-	rospy.spin()
->>>>>>> 07e82dd41f707a1ae38a81164d30bfe47f9b889f
-	
 	
 if __name__ == '__main__':
-
-<<<<<<< HEAD
 	main()
-=======
-	listener()
->>>>>>> 07e82dd41f707a1ae38a81164d30bfe47f9b889f
 
