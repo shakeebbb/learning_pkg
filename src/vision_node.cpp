@@ -20,11 +20,9 @@ using namespace Eigen;
 //////// Global Variables //////////////////////
 Point3_<float> stupidOffset(0, 0.0, 0);
 
-Point3_<float> goal(-5,-5,-5);
+Point3_<float> goal(10,0,0);
 
 int trajIterator = 0;
-
-int currentMode = 1;
 
 float Ts = 0.2;
 float Th = 0.8; // time horizon : In multiples of Ts
@@ -32,11 +30,8 @@ float Th = 0.8; // time horizon : In multiples of Ts
 vector<Point3f> currentTrajectory;
 vector<float> currentOdometry;
 vector<float> endState; 
-bitset<4> escapeDirection(15);
 
 geometry_msgs::PoseStamped lastCommandPose;
-
-bool doEscape = 1;
 
 ros::Publisher posePub;
 ros::Publisher imgPub;
@@ -55,13 +50,19 @@ int imgWidth;
 Mat distortionVector(5,1,cv::DataType<double>::type);
 Mat projectionMatrix(3,4,cv::DataType<double>::type);
 
+sensor_msgs::Image depthImageMsg;
+
 // Safety Bounds
 
 float x_bound[2] = {-0.6 , 5};
 float y_bound[2] = {-3 , 3};
 float z_bound[2] = {0 , 2};
 
+float safetyTime = 0.8;	// (s) least time between last trajectory point in mode 3 and the collision : In multiples of Ts
+float safetyRadius = 0.5;	// (m) least distance between an obstacle and the vehicle
 
+// Messages
+learning_pkg::Learn commMsg;
 ////////////////////////////////////////////////
 
 void depthCallback(const sensor_msgs::Image&);
@@ -120,7 +121,7 @@ int main(int argc, char **argv)
 
 void init()
 {
-remove("/home/marhes/vision_ws/src/learning_pkg/logs/flight_logs.txt");
+remove("../logs/flight_logs.txt");
 }
 
 bool isBounded(geometry_msgs::PoseStamped& point)
@@ -170,17 +171,27 @@ return val;
 
 void timerCallback(const ros::TimerEvent&)
 {
-	//if(flightMode != 2)
-	//return;
+	if(flightMode != 2)
+	return;
 
 	cout << " Timer Callback Called **************************************************************" << endl;
 
-	if(trajIterator == currentTrajectory.size() || currentTrajectory.empty())
+	if(currentTrajectory.empty())
 	{
 	lastCommandPose.header.stamp = ros::Time::now();
 	posePub.publish(lastCommandPose);
+	return;
+	}
+	
+	if(trajIterator == currentTrajectory.size())
+	{
+	currentTrajectory.clear();
+	trajIterator = 0;
+	
+	commMsg.instruction == "c2c:finished";
+	localCommCallback(commMsg);
+		
 	cout << "End of Trajectory" << endl;
-	//currentTrajectory.clear();
 	return;
 	}
 
@@ -205,10 +216,11 @@ void timerCallback(const ros::TimerEvent&)
 	else
 	{
 	lastCommandPose.header.stamp = ros::Time::now();
-        posePub.publish(lastCommandPose);
+  posePub.publish(lastCommandPose);
 	}
 
 	trajIterator += 1;
+	return;
 	}
 	//getchar();
 }
@@ -216,123 +228,20 @@ void timerCallback(const ros::TimerEvent&)
 
 void depthCallback(const sensor_msgs::Image& msg)
 {
+
+depthImageMsg = msg;
+
 return;
-	//if(flightMode != 2)
-	//{
-	//string s = msg.encoding;
-       // ROS_INFO("%s", s.c_str());
-	//return;
-	//}
 
-Mat imgDepth; //depth map
+//ros::Time currenttime=ros::Time::now();
 
-cv_bridge::CvImagePtr ptr;
-ptr = cv_bridge::toCvCopy(msg,"mono8");
-imgDepth = ptr->image.clone();
-
-int safetyRadius = 0.5;
-
-Mat croppedDepth; //depth map
-img_crop(imgDepth);
-
-//imgPub.publish(ptr->toImageMsg());
-
-//cv::imshow( "imgdepth", croppedDepth );                   // Show our image inside it.
-//waitKey(1);
-
-//trajectory.push_back(Point3f(2,0,1));
-//trajectory.push_back(Point3f(2.5,1.5,1));  
-//trajectory.push_back(Point3f(3,0,1));
-//trajectory.push_back(Point3f(3.5,-1.5,1));
-//trajectory.push_back(Point3f(4,0,1));
-//trajectory.push_back(Point3f(4.5,2,1));
-//trajectory.push_back(Point3f(1,0,1));
-//trajectory.push_back(Point3f(3,0,1));
-//trajectory.push_back(Point3f(6,0,1));
-
-ros::Time lasttime=ros::Time::now();
-
-vector<int> areInCollision;
-
-if(camInfo_isUpdated && odom_isUpdated)
-{
-cout << "Local Goal : " << goal << endl;
-//getchar();
-vector<Point3f> receivedTrajectory = waypoints_gen(endState, currentOdometry, currentMode, goal, 0.2, Ts, Th, escapeDirection, doEscape, projectionMatrix, distortionVector, imgDepth,  ptr->image);
-
-	if(receivedTrajectory.empty())
-	{
-	cout << "Empty Trajectory Received" << endl;
-	//getchar();
-	//doReplan = 1;
-	}
-	else
-	{
-	cout << "Trajectory Received" << endl;
-	currentTrajectory.insert(currentTrajectory.end(), receivedTrajectory.begin(), receivedTrajectory.end());
-	
-	//trajIterator = 0;
-	//getchar();
-	}	
-	if(!currentTrajectory.empty())
-	{
-	cout << "currentTrajectory : " << currentTrajectory << endl;
-	cout << "iterator : " << trajIterator << endl;
-	}
-	
-	//getchar();
-//cout << "Checking for Collisions ... " << endl;
-//areInCollision = waypoints2collision(currentTrajectory, currentPose,0.5, projectionMatrix, distortionVector, imgDepth, ptr->image);
-//cout << "Checked for Collisions ... " << endl;
- 
-//cout << " OUT " << endl;
-
-//cout << "areInCollision : (";
-//for (int i =0; i<3; i++)
-//cout << areInCollision[i] << ",";
-//cout << ")"<< endl;
-
-ros::Time currenttime=ros::Time::now();
-
-ros::Duration diff = currenttime - lasttime;
-cout << " TIME TAKEN (s) : " << diff << endl;
+//ros::Duration diff = currenttime - lasttime;
+//cout << " TIME TAKEN (s) : " << diff << endl;
 
 //imgPub.publish(ptr->toImageMsg());
 
 	//cv::imshow( "imgdepth", imgDepth );                   // Show our image inside it.
 	//waitKey(1);
- 
-//geometry_msgs::PoseStamped commandPose;
-//commandPose.header.stamp = ros::Time::now();
-
-//if(areInCollision[0] == 1 || areInCollision[1] == 1 || areInCollision[2] == 1)
-//{
-//commandPose.pose.position.x = 2;
-//commandPose.pose.position.y = 2;
-//commandPose.pose.position.z = 1;
-//}
-//else
-//{
-//commandPose.pose.position.x = 5;
-//commandPose.pose.position.y = 0;
-//commandPose.pose.position.z = 1;
-//}
-
-//commandPose.pose.orientation.x = 0;
-//commandPose.pose.orientation.y = 0;
-//commandPose.pose.orientation.z = 0;
-//commandPose.pose.orientation.w = 1;
-//}
-
-//posePub.publish(commandPose);
-
-//ROS_INFO("Number of Rows handling%i",imgDepth.size().height);
-//ROS_INFO("Number of Cols %i",imgDepth.size().width);
-//ROS_INFO("Number of Channels %i",imgDepth.channels());
-//	string s = msg.encoding;
-//	ROS_INFO("%s", s.c_str());
-}
-cout << "Exiting Depth Callback ... " << endl;
 }
 
 void camInfoCallback(const sensor_msgs::CameraInfo& msg)
@@ -358,22 +267,7 @@ for(int i = 0; i < 5; i++) // Distortion Vector
 
 
 camInfo_isUpdated = 1;
-
-/*
-for(int i = 0; i < 3; i++) // Projection/camera matrix: For debugging
-{
-	for(int j = 0; j < 4; j++)
-	cout << projectionMatrix.at<double>(i,j) << " ";
-cout << endl;void flightModeCallback(const std_msgs::Int32&);
-}
-cout << endl << endl;
-
-for(int i = 0; i < 5; i++) // Distortion vector: For debugging
-	cout << distortionVector.at<double>(i,0) << " ";
-
-cout << endl << endl;
-*/
-					
+				
 }
 
 void odomCallback(const nav_msgs::Odometry& msg)
@@ -424,6 +318,9 @@ void setpoint_cb(const geometry_msgs::PoseStamped& msg)
 	lastCommandPose = msg;
 }
 
+
+// commMsg Subscriber ...........................
+
 void localCommCallback(const learning_pkg::Learn& msg)
 {
 
@@ -433,22 +330,22 @@ cout << "Waiting for information from sensors" << endl;
 return;
 }
 
-learning_pkg::Learn msgCopy;
-msgCopy = msg;
+commMsg = msg;
 
-if (msgCopy.instruction == "py2c:waiting4action?")
-	{
-	msgCopy.instruction = "py2c:waiting4action";
-	commPub.publish(msg);
+if (commMsg.instruction == "py2c:waiting4action?")
+	{	
+	commMsg.instruction = "py2c:waiting4action";
+	commPub.publish(commMsg);
 	}
-else if (msgCopy.instruction == "py2c:check4action")
-	{
 	
+else if (commMsg.instruction == "py2c:check4action")
+	{	
 	vector<Point3f> waypoints;
 	MatrixXf initialState(12,1);
 	MatrixXf finalState(12,1);
 	MatrixXf K(4,12);
 	vector<float> endState;
+	vector<Point3f> queryPoints;
 	
 	initialState << 0,0,0, 0,0,0, 0,0,0, 0,0,0; 
 	K << 0.0000, 0, 0.1397, 0, -0.0000, 0, -0.0000, 0, 4.4458, 0, -0.0000, 0,
@@ -456,51 +353,68 @@ else if (msgCopy.instruction == "py2c:check4action")
     0.1273, 0, 0.0000, 0, 14.1701, 0, 4.0722, 0, 0.0000, 0, 2.5242, 0,
          0, -0.0000, 0, -0.0000, 0, 0.7047, 0, -0.0000, 0, -0.0000, 0, 1.0117;
 	
-	
-	if(msgCopy.action == 0)
+	if(commMsg.action == 0)
 	{
 	finalState << 0,0,0, 0,0,0, -0.25,0.2,0, 0,0,0; 
 	
 	queryPoints = lqr_solver(initialState, finalState, Th, safetyTime, Ts, K, endState);
 	}
 	
-	else if (msgCopy.action == 1)
+	else if (commMsg.action == 1)
 	{
 	finalState << 0,0,0, 0,0,0, 0.4,0,0, 0,0,0; 
-	//TODO : Edit lqr_solver to include more states
+
 	queryPoints = lqr_solver(initialState, finalState, Th, safetyTime, Ts, K, endState);	
 	}
 	
-	else if (msgCopy.action == 2)
+	else if (commMsg.action == 2)
 	{
 	finalState << 0,0,0, 0,0,0, 0.25,0.2,0, 0,0,0; 
 	
 	queryPoints = lqr_solver(initialState, finalState, Th, safetyTime, Ts, K, endState);	
 	}
 	
-		// TODO : make images and properties global
+	Mat imgDepth; //depth image
+	Mat imgRgb; //depth image
+
+	cv_bridge::CvImagePtr ptr;
+	ptr = cv_bridge::toCvCopy(depthImageMsg,"32FC1");
+	imgDepth = ptr->image.clone();
+
 	vector<int> areInCollision = (queryPoints, currentOdometry, safetyRadius, projectionMatrix, distortionVector, imgDepth, imgRgb);
 	
-		int collisionWaypointIndex = -1;
-		for(int i = 0; i < areInCollision.size(); i++)
-			{
-				if(areInCollision[i] == 1)
+	int collisionWaypointIndex = -1;
+	for(int i = 0; i < areInCollision.size(); i++)
+		{
+			if(areInCollision[i] == 1)
 				{
 				collisionWaypointIndex = i;
 				break;
 				}
 			}
 			
-		if (collisionWaypointIndex == 1)
-			//TODO :reward = Large Negative Reward
-		else 
-			{
-			currentTrajectory = queryPoints;
-			//TODO : reward = Positive Reward
-			}
+	if (collisionWaypointIndex == 1)
+		{
+		commMsg.reward = -10; // if trajectory is in collision
+		}
+	else
+		{
+		currentTrajectory = queryPoints;
+		commMsg.reward = 3; // if trajectory is free
+		}
+			
+	//commMsg.instruction = "c2c:waiting2finish";
+	//commPub.publish(commMsg);
+	}	
+else if (commMsg.instruction == "c2c:finished")
+	{
+		commMsg.odometry = currentOdometry;
+		//commMsg.reward = reward;
+		commMsg.instruction = "c2py:check4reward";
+		commPub.publish(commMsg);
+	}
 	
-	
-	
+/*	
 	check for collision
 	 if detected 
 	 -ve reward
@@ -508,12 +422,6 @@ else if (msgCopy.instruction == "py2c:check4action")
 	  append global trajectory
 	  +ve reward
 	 wait for traj execution to finish
-	 
-	msgCopy.odometry = currentOdometry;
-	msgCopy.reward = reward;
-	msgCopy.instruction = "py2c:check4reward";
-	commPub.publish(msg);
-	 
-	}
+	*/ 
 }
 

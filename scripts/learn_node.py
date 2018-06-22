@@ -9,8 +9,8 @@ from learning_pkg.msg import Learn
 from keras.models import Sequential
 from keras.layers import Dense, Activation
 
-bugHim = "py2py:bugging_c"
 comm_msg = Learn()
+comm_msg.instruction = "py2c:waiting4action?"
 
 seed = 7
 numpy.random.seed(seed)
@@ -45,11 +45,6 @@ print("NN model initialized ...")
 
 def commCallback(msg):
 
-	global bugHim
-	
-	if "c2py" in msg.instruction
-	bugHim = "py2py:c_wokeup"
-
 	global scan
 	
 	if msg.instruction == "c2py:waiting4action":
@@ -58,7 +53,7 @@ def commCallback(msg):
 		epsilon = numpy.random.binomial(n=1, p=0.8, size=None)
 	
 		if epsilon == 0: # explore random action
-			msg.instruction = "py2c:action4u"
+			msg.instruction = "py2c:check4action"
 			msg.action = random.randint(0,action_dim)
 			msg.state = scan
 			msg.reward = float('nan')
@@ -78,8 +73,6 @@ def commCallback(msg):
 			commPub.publish(msg)
 		
 	elif msg.instruction == "c2py:check4reward":
-	
-		r = msg.reward
 
 		model0_out = model0.predict(msg.state)
 		model1_out = model1.predict(msg.state)
@@ -87,7 +80,7 @@ def commCallback(msg):
 		
 		Q_star = max(model0_out, model0_out, model0_out)
 		
-		Q = r + gamma*(Q_star)
+		Q = msg.reward + gamma*(Q_star)
 		
 		#global action
 		if msg.action == 0:
@@ -99,7 +92,6 @@ def commCallback(msg):
 		
 		#Publish Instruction / Acknowledgement
 		msg.instruction = "py2c:waiting4action?"
-		msg.state = scan
 		commPub.publish(msg)
 		
 def scanCallback(msg):
@@ -121,8 +113,7 @@ def main ():
 	global bugHim
 	
 	while not rospy.is_shutdown():
-		if bugHim == "py2py:bugging_c":
-			comm_msg.instruction = "py2c:waiting4action?"
+		if comm_msg.instruction == "py2c:waiting4action?":
 			commPub.publish(comm_msg)
 		rate.sleep()
 		#rospy.spinOnce()
