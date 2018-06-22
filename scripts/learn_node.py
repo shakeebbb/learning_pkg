@@ -9,7 +9,7 @@ from learning_pkg.msg import Learn
 from keras.models import Sequential
 from keras.layers import Dense, Activation
 
-bugHim = "py2py:bugging"
+bugHim = "py2py:bugging_c"
 comm_msg = Learn()
 
 seed = 7
@@ -44,8 +44,11 @@ model2.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'
 print("NN model initialized ...")
 
 def commCallback(msg):
+
 	global bugHim
-	bugHim = "py2py:wokeup"
+	
+	if "c2py" in msg.instruction
+	bugHim = "py2py:c_wokeup"
 
 	global scan
 	
@@ -68,7 +71,7 @@ def commCallback(msg):
 		
 			temp_array = [model0_out, model0_out, model0_out]
 			
-			msg.instruction = "py2c:action4you"
+			msg.instruction = "py2c:check4action"
 			msg.action = temp_array.index(max(temp_array))
 			msg.state = scan
 			msg.reward = float('nan')
@@ -118,7 +121,7 @@ def main ():
 	global bugHim
 	
 	while not rospy.is_shutdown():
-		if bugHim == "py2py:bugging":
+		if bugHim == "py2py:bugging_c":
 			comm_msg.instruction = "py2c:waiting4action?"
 			commPub.publish(comm_msg)
 		rate.sleep()

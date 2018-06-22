@@ -15,6 +15,7 @@
 
 using namespace std;
 using namespace cv;
+using namespace Eigen;
 
 //////// Global Variables //////////////////////
 Point3_<float> stupidOffset(0, 0.0, 0);
@@ -379,22 +380,33 @@ void odomCallback(const nav_msgs::Odometry& msg)
 {
 currentOdometry.clear();
 
-currentOdometry.push_back(msg.pose.pose.position.x);
-currentOdometry.push_back(msg.pose.pose.position.y);
-currentOdometry.push_back(msg.pose.pose.position.z);
+currentOdometry.push_back(msg.pose.pose.position.x);	//x
+currentOdometry.push_back(msg.pose.pose.position.y);	//y
+currentOdometry.push_back(msg.pose.pose.position.z);	//z
 
-currentOdometry.push_back(msg.twist.twist.linear.x);
-currentOdometry.push_back(msg.twist.twist.linear.y);
-currentOdometry.push_back(msg.twist.twist.linear.z);
+/*
+Quaternionf q(msg.pose.pose.orientation.w, msg.pose.pose.orientation.x
+							msg.pose.pose.orientation.y, msg.pose.pose.orientation.z);
+							
+Vector3f ea = q.toRotationMatrix().eulerAngles(0, 1, 2);
 
-currentOdometry.push_back(msg.pose.pose.orientation.x);
-currentOdometry.push_back(msg.pose.pose.orientation.y);
-currentOdometry.push_back(msg.pose.pose.orientation.z);
-currentOdometry.push_back(msg.pose.pose.orientation.w);
+currentOdometry.push_back(ea(0));	//phi
+currentOdometry.push_back(ea(1)); //theta
+currentOdometry.push_back(ea(2)); //psi
+*/
 
-currentOdometry.push_back(msg.twist.twist.angular.x);
-currentOdometry.push_back(msg.twist.twist.angular.y);
-currentOdometry.push_back(msg.twist.twist.angular.z);
+currentOdometry.push_back(msg.pose.pose.orientation.x);	//q.x
+currentOdometry.push_back(msg.pose.pose.orientation.y); //q.y
+currentOdometry.push_back(msg.pose.pose.orientation.z); //q.z
+currentOdometry.push_back(msg.pose.pose.orientation.w); //q.w
+
+currentOdometry.push_back(msg.twist.twist.linear.x);	//x_dot
+currentOdometry.push_back(msg.twist.twist.linear.y);	//y_dot
+currentOdometry.push_back(msg.twist.twist.linear.z);	//z_dot
+
+currentOdometry.push_back(msg.twist.twist.angular.x);	//phi_dot
+currentOdometry.push_back(msg.twist.twist.angular.y);	//theta_dot
+currentOdometry.push_back(msg.twist.twist.angular.z);	//psi_dot
 
 odom_isUpdated = 1;
 
@@ -414,13 +426,94 @@ void setpoint_cb(const geometry_msgs::PoseStamped& msg)
 
 void localCommCallback(const learning_pkg::Learn& msg)
 {
-string mess = "abcd";
-msg.instruction = mess;
-//if (msg.instruction == "py2c:waiting4action?")
-//	{
-//	msg.instruction.assign("py2c:waiting4action");
-//	commPub.publish(msg);
-//	}
 
+if(!camInfo_isUpdated && !odom_isUpdated)
+{
+cout << "Waiting for information from sensors" << endl;
+return;
+}
+
+learning_pkg::Learn msgCopy;
+msgCopy = msg;
+
+if (msgCopy.instruction == "py2c:waiting4action?")
+	{
+	msgCopy.instruction = "py2c:waiting4action";
+	commPub.publish(msg);
+	}
+else if (msgCopy.instruction == "py2c:check4action")
+	{
+	
+	vector<Point3f> waypoints;
+	MatrixXf initialState(12,1);
+	MatrixXf finalState(12,1);
+	MatrixXf K(4,12);
+	vector<float> endState;
+	
+	initialState << 0,0,0, 0,0,0, 0,0,0, 0,0,0; 
+	K << 0.0000, 0, 0.1397, 0, -0.0000, 0, -0.0000, 0, 4.4458, 0, -0.0000, 0,
+         0, -0.0962, 0, 10.3275, 0, 0.0000, 0, -3.0742, 0, 1.7759, 0, 0.0000,
+    0.1273, 0, 0.0000, 0, 14.1701, 0, 4.0722, 0, 0.0000, 0, 2.5242, 0,
+         0, -0.0000, 0, -0.0000, 0, 0.7047, 0, -0.0000, 0, -0.0000, 0, 1.0117;
+	
+	
+	if(msgCopy.action == 0)
+	{
+	finalState << 0,0,0, 0,0,0, -0.25,0.2,0, 0,0,0; 
+	
+	queryPoints = lqr_solver(initialState, finalState, Th, safetyTime, Ts, K, endState);
+	}
+	
+	else if (msgCopy.action == 1)
+	{
+	finalState << 0,0,0, 0,0,0, 0.4,0,0, 0,0,0; 
+	//TODO : Edit lqr_solver to include more states
+	queryPoints = lqr_solver(initialState, finalState, Th, safetyTime, Ts, K, endState);	
+	}
+	
+	else if (msgCopy.action == 2)
+	{
+	finalState << 0,0,0, 0,0,0, 0.25,0.2,0, 0,0,0; 
+	
+	queryPoints = lqr_solver(initialState, finalState, Th, safetyTime, Ts, K, endState);	
+	}
+	
+		// TODO : make images and properties global
+	vector<int> areInCollision = (queryPoints, currentOdometry, safetyRadius, projectionMatrix, distortionVector, imgDepth, imgRgb);
+	
+		int collisionWaypointIndex = -1;
+		for(int i = 0; i < areInCollision.size(); i++)
+			{
+				if(areInCollision[i] == 1)
+				{
+				collisionWaypointIndex = i;
+				break;
+				}
+			}
+			
+		if (collisionWaypointIndex == 1)
+			//TODO :reward = Large Negative Reward
+		else 
+			{
+			currentTrajectory = queryPoints;
+			//TODO : reward = Positive Reward
+			}
+	
+	
+	
+	check for collision
+	 if detected 
+	 -ve reward
+	 else
+	  append global trajectory
+	  +ve reward
+	 wait for traj execution to finish
+	 
+	msgCopy.odometry = currentOdometry;
+	msgCopy.reward = reward;
+	msgCopy.instruction = "py2c:check4reward";
+	commPub.publish(msg);
+	 
+	}
 }
 
