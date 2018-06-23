@@ -96,7 +96,7 @@ int main(int argc, char **argv)
 	ros::Subscriber setpoint_sub = n.subscribe("/iris/command/pose", 10, setpoint_cb);
 
 	// Publishers
-	commPub = n.advertise<std_msgs::String>("/local_instruct" ,10);
+	commPub = n.advertise<learning_pkg::Learn>("/local_communication" ,10);
 	posePub = n.advertise<geometry_msgs::PoseStamped>("/iris/command/pose" ,100);
 	imgPub = n.advertise<sensor_msgs::Image>("/labeled_image" ,100);
 
@@ -250,8 +250,8 @@ void camInfoCallback(const sensor_msgs::CameraInfo& msg)
 imgHeight = msg.height; 												// The image dimensions with which the camera was calibrated
 imgWidth = msg.width;
 
-cout << "imgHeight : " << imgHeight << endl;
-cout << "imgWidth : " << imgWidth << endl;
+//cout << "imgHeight : " << imgHeight << endl;
+//cout << "imgWidth : " << imgWidth << endl;
 	
 for(int i = 0; i < 3; i++) // Projection/camera matrix: By convention, this matrix specifies the intrinsic (camera) matrix of the processed (rectified) image
 {
@@ -304,7 +304,7 @@ currentOdometry.push_back(msg.twist.twist.angular.z);	//psi_dot
 
 odom_isUpdated = 1;
 
-cout << "Subscribed to Current Pose .... " << endl;
+//cout << "Subscribed to Current Pose .... " << endl;
 
 }
 
@@ -334,7 +334,7 @@ commMsg = msg;
 
 if (commMsg.instruction == "py2c:waiting4action?")
 	{	
-	commMsg.instruction = "py2c:waiting4action";
+	commMsg.instruction = "c2py:waiting4action";
 	commPub.publish(commMsg);
 	}
 	
@@ -374,6 +374,7 @@ else if (commMsg.instruction == "py2c:check4action")
 	queryPoints = lqr_solver(initialState, finalState, Th, safetyTime, Ts, K, endState);	
 	}
 	
+	cout << " Passed LQR solver" << endl;
 	Mat imgDepth; //depth image
 	Mat imgRgb; //depth image
 
@@ -414,6 +415,7 @@ else if (commMsg.instruction == "c2c:finished")
 		commPub.publish(commMsg);
 	}
 	
+	cout << "............................................" << endl;
 /*	
 	check for collision
 	 if detected 
