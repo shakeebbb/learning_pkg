@@ -1,6 +1,9 @@
 string instruction
 int32 action
-float32[] state
+
+---
+
+string instruction
 float64 reward
-float32[] odometry
+int32 action
 

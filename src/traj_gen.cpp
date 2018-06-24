@@ -310,9 +310,9 @@ vector<Point3f> lqr_solver(MatrixXf initialState, MatrixXf finalState, float Th,
 // Th : Time Horizon
 // Ts : Sampling Time 
 
-cout << "Called lqr_solver" << endl;
-cout << " Initial State : " << initialState << endl;
-cout << " Final State : " << finalState << endl;
+//cout << "Called lqr_solver" << endl;
+//cout << " Initial State : " << initialState << endl;
+//cout << " Final State : " << finalState << endl;
 
 vector<Point3f> newWaypoints;
 
@@ -362,38 +362,38 @@ MatrixXf U(N, m);
 //for(int i=0; i<n; i++)
 //X(1,n) = initialState(i);
 
-cout << "Called lqr_solver 1" << endl;
+//cout << "Called lqr_solver 1" << endl;
 
 X.row(0) = initialState.transpose();
 //newWaypoints.push_back(Point3_<float>(X.row(0)(0), X.row(0)(2), X.row(0)(4)));
 
-cout << "Called lqr_solver 2" << endl;
+//cout << "Called lqr_solver 2" << endl;
 
 for (int i=1; i<N; i++)
 	{
-	cout << "Called lqr_solver 2 a" << endl;
+	//cout << "Called lqr_solver 2 a" << endl;
 	X.row(i) = ((A - B * K) * X.row(i-1).transpose() + B * K * finalState).transpose();
 	
-	cout << X.row(i) << endl;
+	//cout << X.row(i) << endl;
 	
-	cout << "Called lqr_solver 2 b" << endl;
+	//cout << "Called lqr_solver 2 b" << endl;
 	
 	newWaypoints.push_back(Point3_<float>(X.row(i)(0), X.row(i)(2), X.row(i)(4)));
 	
-	cout << "Called lqr_solver 2 c" << endl;
+	//cout << "Called lqr_solver 2 c" << endl;
 	
-	cout << (- K * (X.row(i-1).transpose() - finalState)).transpose() << endl;
+	//cout << (- K * (X.row(i-1).transpose() - finalState)).transpose() << endl;
 	
 	U.row(i-1) = (-K * (X.row(i-1).transpose() - finalState) ).transpose();
 	}
 	
-	cout << "Called lqr_solver 2 d" << endl;
+//	cout << "Called lqr_solver 2 d" << endl;
  	U.row(N-1) = (-K * (X.row(N-1).transpose() - finalState) ).transpose();
  	
-cout << "Called lqr_solver 3" << endl;
+//cout << "Called lqr_solver 3" << endl;
 
-cout << " Waypoints Generated " << " : " << newWaypoints << endl;
-cout << "State : " << X << endl;
+//cout << " Waypoints Generated " << " : " << newWaypoints << endl;
+//cout << "State : " << X << endl;
 	endState.clear();
 	endState.push_back(X(Th/Ts,0));
 	endState.push_back(X(Th/Ts,1));
@@ -401,11 +401,16 @@ cout << "State : " << X << endl;
 	endState.push_back(X(Th/Ts,3));
 	endState.push_back(X(Th/Ts,4));
 	endState.push_back(X(Th/Ts,5));
+	endState.push_back(X(Th/Ts,6));
+	endState.push_back(X(Th/Ts,7));
+	endState.push_back(X(Th/Ts,8));
+	endState.push_back(X(Th/Ts,9));
+	endState.push_back(X(Th/Ts,10));
+	endState.push_back(X(Th/Ts,11));
 
+//cout << " Returning Waypoints from LQR Solver" << endl;
 
-cout << " Returning Waypoints from LQR Solver" << endl;
-
-cout << " Returning New End State From LQR : " << endState[0] << endl;
+//cout << " Returning New End State From LQR : " << endState[0] << endl;
 return newWaypoints;
 }
 

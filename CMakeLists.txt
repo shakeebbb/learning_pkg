@@ -60,18 +60,19 @@ Eigen3 REQUIRED
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
- add_message_files(
-   FILES
-   Learn.msg
+ #add_message_files(
+ #  FILES
+ #  Learn.msg
 #   Message2.msg
- )
+ #)
 
 ## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
+ add_service_files(
+   FILES
 #   Service1.srv
 #   Service2.srv
-# )
+		Learn.srv
+ )
 
 ## Generate actions in the 'action' folder
 # add_action_files(
