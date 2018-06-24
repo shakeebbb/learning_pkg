@@ -3,6 +3,7 @@
 import rospy
 import numpy
 import random
+import math
 from std_msgs.msg import String
 from sensor_msgs.msg import LaserScan
 from rospy.numpy_msg import numpy_msg
@@ -21,7 +22,7 @@ gamma = 1  # discount factor
 	
 nFeatures = 640
 
-action_dim = 4
+action_dim = 3
 
 # Model 0
 model0 = Sequential()
@@ -64,15 +65,20 @@ def commCallback():
 	try:
 		clientHandle = rospy.ServiceProxy('action2reward', Learn)	
 					
-		epsilon = numpy.random.binomial(n=1, p=0.8, size=None)
+		epsilon = numpy.random.binomial(n=1, p=0.7, size=None)
 	
 		if epsilon == 0: # explore random action
 			instruction = "py2c:check4action"
-			action = random.randint(0,action_dim)
+			action = random.randint(0,action_dim-1)
 			state = scan
 			
 			response = clientHandle(instruction, action)
 			reward = response.reward
+			
+			if response.instruction == "c2py:ready4reset":
+				del state
+				del reward
+				return
 			
 			print("Reward : %f", reward)
 			
@@ -85,11 +91,11 @@ def commCallback():
 			Q = reward + gamma*(Q_star)
 		
 			if response.action == 0:
-				model0.fit(state, Q, epochs=1, batch_size=10, verbose=2)
+				model0.fit(state, Q, epochs=1, batch_size=1, verbose=2)
 			elif response.action == 1:
-				model1.fit(state, Q, epochs=1, batch_size=10, verbose=2)
+				model1.fit(state, Q, epochs=1, batch_size=1, verbose=2)
 			elif response.action == 2:
-				model2.fit(state, Q, epochs=1, batch_size=10, verbose=2)
+				model2.fit(state, Q, epochs=1, batch_size=1, verbose=2)
 
 			return
 
@@ -108,7 +114,12 @@ def commCallback():
 			response = clientHandle(instruction, action)
 			reward = response.reward
 			
-			print("Reward : %f", reward)
+			if response.instruction == "c2py:ready4reset":
+				del state
+				del reward
+				return
+			
+			print("Reward = ", reward)
 			
 			model0_out = model0.predict(scan)
 			model1_out = model1.predict(scan)
@@ -118,12 +129,14 @@ def commCallback():
 		
 			Q = reward + gamma*(Q_star)
 		
+			print("Q(s,a) = ", Q)
+			
 			if response.action == 0:
-				model0.fit(state, Q, epochs=1, batch_size=10, verbose=2)
+				model0.fit(state, Q, epochs=1, batch_size=1, verbose=2)
 			elif response.action == 1:
-				model1.fit(state, Q, epochs=1, batch_size=10, verbose=2)
+				model1.fit(state, Q, epochs=1, batch_size=1, verbose=2)
 			elif response.action == 2:
-				model2.fit(state, Q, epochs=1, batch_size=10, verbose=2)
+				model2.fit(state, Q, epochs=1, batch_size=1, verbose=2)
 
 			return
 				
@@ -134,6 +147,16 @@ def scanCallback(msg):
 	
 	global scan	
 	scan = numpy.transpose(msg.ranges.reshape((640, 1)))
+	
+	#print('Raw : ',scan)
+	scan.setflags(write=1)
+	scan[numpy.isnan(scan)]=numpy.nanmax(scan)
+	
+	scan = (scan - numpy.min(scan))/numpy.ptp(scan)
+	
+	#scan = scan / numpy.nanmean(scan) # Use a mask to mark the NaNs
+	
+	#print(scan)
 
 
 def main ():
