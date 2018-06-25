@@ -377,7 +377,7 @@ for (int i=1; i<N; i++)
 	
 	//cout << "Called lqr_solver 2 b" << endl;
 	
-	newWaypoints.push_back(Point3_<float>(X.row(i)(0), X.row(i)(2), X.row(i)(4)));
+	newWaypoints.push_back(Point3_<float>(X.row(i)(0), X.row(i)(1), X.row(i)(2)));
 	
 	//cout << "Called lqr_solver 2 c" << endl;
 	

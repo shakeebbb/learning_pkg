@@ -15,8 +15,8 @@ from keras.layers import Dense, Activation
 comm_msg = Learn()
 comm_msg.instruction = "py2c:waiting4action?"
 
-seed = 7
-numpy.random.seed(seed)
+#seed = 7
+#numpy.random.seed(seed)
 
 gamma = 1  # discount factor
 	
@@ -65,9 +65,10 @@ def commCallback():
 	try:
 		clientHandle = rospy.ServiceProxy('action2reward', Learn)	
 					
-		epsilon = numpy.random.binomial(n=1, p=0.7, size=None)
+		epsilon = numpy.random.binomial(n=1, p=0.5, size=None)
 	
 		if epsilon == 0: # explore random action
+					
 			instruction = "py2c:check4action"
 			action = random.randint(0,action_dim-1)
 			state = scan
@@ -79,8 +80,10 @@ def commCallback():
 				del state
 				del reward
 				return
-			
-			print("Reward : %f", reward)
+				
+			#print (scan)
+			print ("Explored random action : ", action)				
+			print("Reward : ", reward)
 			
 			model0_out = model0.predict(scan)
 			model1_out = model1.predict(scan)
@@ -97,10 +100,11 @@ def commCallback():
 			elif response.action == 2:
 				model2.fit(state, Q, epochs=1, batch_size=1, verbose=2)
 
+			raw_input()
 			return
 
 		else: # choose the best action
-
+			
 			model0_out = model0.predict(scan)
 			model1_out = model1.predict(scan)
 			model2_out = model2.predict(scan)
@@ -110,7 +114,7 @@ def commCallback():
 			instruction = "py2c:check4action"
 			action = temp_array.index(max(temp_array))
 			state = scan
-			
+								
 			response = clientHandle(instruction, action)
 			reward = response.reward
 			
@@ -119,6 +123,8 @@ def commCallback():
 				del reward
 				return
 			
+			#print (scan)
+			print ("Chosen best action : ", action)
 			print("Reward = ", reward)
 			
 			model0_out = model0.predict(scan)
@@ -137,7 +143,8 @@ def commCallback():
 				model1.fit(state, Q, epochs=1, batch_size=1, verbose=2)
 			elif response.action == 2:
 				model2.fit(state, Q, epochs=1, batch_size=1, verbose=2)
-
+				
+			raw_input()
 			return
 				
 	except rospy.ServiceException as e:
@@ -148,13 +155,20 @@ def scanCallback(msg):
 	global scan	
 	scan = numpy.transpose(msg.ranges.reshape((640, 1)))
 	
-	#print('Raw : ',scan)
 	scan.setflags(write=1)
-	scan[numpy.isnan(scan)]=numpy.nanmax(scan)
 	
-	scan = (scan - numpy.min(scan))/numpy.ptp(scan)
+	if numpy.all((numpy.isnan(scan))):
+		scan.fill(1)
 	
-	#scan = scan / numpy.nanmean(scan) # Use a mask to mark the NaNs
+	else:
+	
+		#print('Raw : ',scan)
+		
+		scan[numpy.isnan(scan)]=numpy.nanmax(scan)
+	
+		scan = (scan - numpy.min(scan))/numpy.ptp(scan)
+	
+		#scan = scan / numpy.nanmean(scan) # Use a mask to mark the NaNs
 	
 	#print(scan)
 

@@ -70,7 +70,7 @@ rectanglePoints_v.push_back( queryPosition + Point3f(-safetyRadius, safetyRadius
   		
 			if(imgDepth.at<float>(i,j) < rectanglePoints_v[1].z)
 			{
-			imgRgb.at<float>(i,j) = 255;
+			//imgRgb.at<float>(i,j) = 255;
 			numCollisionPoints += 1;
 			}
 			
