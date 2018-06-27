@@ -4,6 +4,7 @@ import rospy
 import numpy
 import random
 import math
+import warnings
 from std_msgs.msg import String
 from sensor_msgs.msg import LaserScan
 from rospy.numpy_msg import numpy_msg
@@ -18,7 +19,7 @@ comm_msg.instruction = "py2c:waiting4action?"
 #seed = 7
 #numpy.random.seed(seed)
 
-gamma = 1  # discount factor
+gamma = 0.2  # discount factor
 	
 nFeatures = 640
 
@@ -28,21 +29,21 @@ action_dim = 3
 model0 = Sequential()
 model0.add(Dense(12, activation='relu', kernel_initializer='uniform', input_dim=nFeatures))
 model0.add(Dense(8, kernel_initializer='uniform', activation='relu'))
-model0.add(Dense(1, kernel_initializer='uniform', activation='sigmoid'))
+model0.add(Dense(1, kernel_initializer='uniform', activation='linear'))
 
 model0.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
 # Model 1
 model1 = Sequential()
 model1.add(Dense(12, activation='relu', kernel_initializer='uniform', input_dim=nFeatures))
 model1.add(Dense(8, kernel_initializer='uniform', activation='relu'))
-model1.add(Dense(1, kernel_initializer='uniform', activation='sigmoid'))
+model1.add(Dense(1, kernel_initializer='uniform', activation='linear'))
 
 model1.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
 # Model 2
 model2 = Sequential()
 model2.add(Dense(12, activation='relu', kernel_initializer='uniform', input_dim=nFeatures))
 model2.add(Dense(8, kernel_initializer='uniform', activation='relu'))
-model2.add(Dense(1, kernel_initializer='uniform', activation='sigmoid'))
+model2.add(Dense(1, kernel_initializer='uniform', activation='linear'))
 
 model2.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
 
@@ -109,7 +110,7 @@ def commCallback():
 			model1_out = model1.predict(scan)
 			model2_out = model2.predict(scan)
 		
-			temp_array = [model0_out, model0_out, model0_out]
+			temp_array = [model0_out, model1_out, model2_out]
 			
 			instruction = "py2c:check4action"
 			action = temp_array.index(max(temp_array))
@@ -135,7 +136,7 @@ def commCallback():
 		
 			Q = reward + gamma*(Q_star)
 		
-			print("Q(s,a) = ", Q)
+			print("Q(s,a) = ", Q, "Q* = max [", model0_out, model1_out, model2_out, "]")
 			
 			if response.action == 0:
 				model0.fit(state, Q, epochs=1, batch_size=1, verbose=2)
@@ -153,24 +154,36 @@ def commCallback():
 def scanCallback(msg):
 	
 	global scan	
+	
+	msg.ranges.setflags(write=1)
+	msg.ranges[numpy.argwhere(numpy.isnan(msg.ranges))] = 10
+	
 	scan = numpy.transpose(msg.ranges.reshape((640, 1)))
 	
-	scan.setflags(write=1)
-	
-	if numpy.all((numpy.isnan(scan))):
-		scan.fill(1)
-	
-	else:
-	
-		#print('Raw : ',scan)
+	#if numpy.isnan(numpy.sum(scan)):
+		#print('Non-numeric data found in the file.')
+	#	scan.fill(10)
 		
-		scan[numpy.isnan(scan)]=numpy.nanmax(scan)
+	#else:
+		
+	#	scan[numpy.isnan(scan)]=numpy.nanmax(scan)
+		
+	#	scan = (scan - numpy.min(scan))/numpy.ptp(scan)
 	
-		scan = (scan - numpy.min(scan))/numpy.ptp(scan)
+	#if numpy.all((numpy.isnan(scan))):
+	#	scan.fill(1)
 	
-		#scan = scan / numpy.nanmean(scan) # Use a mask to mark the NaNs
+	#else:
 	
-	#print(scan)
+		##print('Raw : ',scan)
+		
+		#scan[numpy.isnan(scan)]=numpy.nanmax(scan)
+	
+		#scan = (scan - numpy.min(scan))/numpy.ptp(scan)
+	
+		##scan = scan / numpy.nanmean(scan) # Use a mask to mark the NaNs
+	
+	##print(scan)
 
 
 def main ():

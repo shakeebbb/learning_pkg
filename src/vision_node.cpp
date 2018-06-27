@@ -28,7 +28,7 @@ Point3_<float> goal(10,0,0);
 int trajIterator = 0;
 
 float Ts = 0.2;
-float Th = 5; // time horizon : In multiples of Ts 
+float Th = 7; // time horizon : In multiples of Ts 
 
 vector<Point3f> currentTrajectory;
 vector<float> currentOdometry;
@@ -61,7 +61,7 @@ float x_bound[2] = {-0.6 , 5};
 float y_bound[2] = {-3 , 3};
 float z_bound[2] = {0 , 2};
 
-float safetyTime = 2; //0.8;	// (s) least time between last trajectory point in mode 3 and the collision : In multiples of Ts
+float safetyTime = 4; //0.8;	// (s) least time between last trajectory point in mode 3 and the collision : In multiples of Ts
 float safetyRadius = 0.5;	// (m) least distance between an obstacle and the vehicle
 
 // Messages
@@ -76,7 +76,7 @@ void flightModeCallback(const std_msgs::Int32&);
 bool isBounded(geometry_msgs::PoseStamped&);
 void setpoint_cb(const geometry_msgs::PoseStamped&);
 bool localCommCallback(learning_pkg::Learn::Request&, learning_pkg::Learn::Response&);
-void init();
+void init(bool);
 
 int main(int argc, char **argv)
 {
@@ -90,7 +90,7 @@ int main(int argc, char **argv)
 	// Subscribers
 	ros::Subscriber depthSub = n.subscribe("/iris/vi_sensor/camera_depth/depth/disparity", 100, depthCallback);
 	ros::Subscriber camInfoSub = n.subscribe("/iris/vi_sensor/camera_depth/depth/camera_info", 100, camInfoCallback);
-	ros::Subscriber odomSub = n.subscribe("/iris/odometry_sensor1/odometry", 100, odomCallback);
+	ros::Subscriber odomSub = n.subscribe("/iris/vi_sensor/ground_truth/odometry", 100, odomCallback);
 	ros::Subscriber modeSub = n.subscribe("/flight_mode", 10, flightModeCallback);
 
 	//ros::Subscriber commSub = n.subscribe("/local_communication", 1, localCommCallback);
@@ -104,7 +104,7 @@ int main(int argc, char **argv)
 	//Services
 	ros::ServiceServer commService = n.advertiseService("action2reward", localCommCallback);
 	
-	init();
+	init(true);
 	//ros::Timer timer = n.createTimer(ros::Duration(Ts), timerCallback);
 
   //ros::Rate loop_rate(10);
@@ -124,14 +124,15 @@ int main(int argc, char **argv)
   return 0;
 }
 
-void init()
+void init(bool resetLogFile)
 {
+if(resetLogFile)
 remove(logFilePath.c_str());	
 
 endState.clear();
 endState.push_back(0 + stupidOffset.x);
 endState.push_back(0 + stupidOffset.y);
-endState.push_back(1 + stupidOffset.z);
+endState.push_back(1.5 + stupidOffset.z);
 endState.push_back(0);
 endState.push_back(0);
 endState.push_back(0);
@@ -357,6 +358,8 @@ if (req.instruction == "py2c:check4action")
 	MatrixXf K(4,12);
 	vector<Point3f> queryPoints;
 	
+	vector<float> end_state;
+	
 	initialState << endState[0], endState[1], endState[2], 0,0,0, 0,0,0, 0,0,0; 
 	//initialState << currentOdometry[0], currentOdometry[1], currentOdometry[2], 0,0,0, 0,0,0, 0,0,0; 
 	K << 0.0000, 0, 0.1397, 0, -0.0000, 0, -0.0000, 0, 4.4458, 0, -0.0000, 0,
@@ -366,23 +369,23 @@ if (req.instruction == "py2c:check4action")
 	
 	if(req.action == 0)
 	{
-	finalState << 0,0,1, 0,0,0, 0.3,-0.15,0, 0,0,0; 
+	finalState << 0,0,1, 0,0,0, 0.4,-0.2,0, 0,0,0; 
 	
-	queryPoints = lqr_solver(initialState, finalState, Th, safetyTime, Ts, K, endState);
+	queryPoints = lqr_solver(initialState, finalState, Th, safetyTime, Ts, K, end_state);
 	}
 	
 	else if (req.action == 1)
 	{
-	finalState << 0,0,1, 0,0,0, 0.3,0,0, 0,0,0; 
+	finalState << 0,0,1, 0,0,0, 0.4,0,0, 0,0,0; 
 
-	queryPoints = lqr_solver(initialState, finalState, Th, safetyTime, Ts, K, endState);	
+	queryPoints = lqr_solver(initialState, finalState, Th, safetyTime, Ts, K, end_state);	
 	}
 	
 	else if (req.action == 2)
 	{
-	finalState << 0,0,1, 0,0,0, 0.3,0.15,0, 0,0,0; 
+	finalState << 0,0,1, 0,0,0, 0.4,0.2,0, 0,0,0; 
 	
-	queryPoints = lqr_solver(initialState, finalState, Th, safetyTime, Ts, K, endState);	
+	queryPoints = lqr_solver(initialState, finalState, Th, safetyTime, Ts, K, end_state);	
 	}
 
 	logFile << "Initial LQR State : " << initialState << endl;
@@ -418,23 +421,24 @@ if (req.instruction == "py2c:check4action")
 			
 	if(outOfViewPoints == areInCollision.size())
 		{
-		res.reward = -8; // if trajectory is in collision
+		res.reward = -0.7; // if trajectory is in collision
 		}
 	if (collisionWaypointIndex == 1)
 		{
-		res.reward = -10; // if trajectory is in collision
+		res.reward = -0.9; // if trajectory is in collision
 		}
 	else
 		{
+		endState = end_state;
 		currentTrajectory = queryPoints;
 		currentTrajectory.erase(currentTrajectory.begin() + Th/Ts, currentTrajectory.end());
 		
 		if(req.action == 0)
-		res.reward = 0.5; // if trajectory is free
+		res.reward = 0.3; // if trajectory is free
 		else if(req.action == 1)
-		res.reward = 7; // if trajectory is free
+		res.reward = 0.7; // if trajectory is free
 		else if(req.action == 2)
-		res.reward = 0.5; // if trajectory is free
+		res.reward = 0.3; // if trajectory is free
 		}
 			
 	logFile << "Current Trajectory To Follow : " << currentTrajectory << endl;
@@ -446,11 +450,29 @@ if (req.instruction == "py2c:check4action")
 		ros::Duration(Ts).sleep();
 		//sleep(Ts);
 		
-		/*
+		
 		if(abs(currentTrajectory[trajIterator].x - goal.x) < 0.5)
 		{
+		init(false);
 		std_srvs::Empty resetWorldSrv;
 		ros::service::call("/gazebo/reset_world", resetWorldSrv);
+		
+		geometry_msgs::PoseStamped commandPose;
+		
+		commandPose.pose.position.x = 0;
+		commandPose.pose.position.y = 0;
+		commandPose.pose.position.z = 1;
+	
+		commandPose.pose.orientation.x = 0;
+		commandPose.pose.orientation.y = 0;
+		commandPose.pose.orientation.z = 0;
+		commandPose.pose.orientation.w = 1;
+
+		commandPose.header.stamp = ros::Time::now();
+
+		posePub.publish(commandPose);
+		
+		sleep(3);
 
 		res.instruction = "c2py:ready4reset";
 		
@@ -464,7 +486,7 @@ if (req.instruction == "py2c:check4action")
 		trajIterator = 0;
 		return true;
 		}
-		*/
+		
 		}
 	currentTrajectory.clear();
 	trajIterator = 0;
