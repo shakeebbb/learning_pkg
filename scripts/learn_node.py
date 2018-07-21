@@ -6,13 +6,23 @@ import random
 import math
 import warnings
 import time
+import csv
+from keras.callbacks import CSVLogger
 from std_msgs.msg import String
 from sensor_msgs.msg import LaserScan
 from rospy.numpy_msg import numpy_msg
 from learning_pkg.srv import *
+import matplotlib.pyplot as plt
+from keras.utils import plot_model
 
 from keras.models import Sequential
 from keras.layers import Dense, Activation
+
+episodeN = 0
+
+csvLogger0 = CSVLogger('model0_log.csv', append=True)
+csvLogger1 = CSVLogger('model1_log.csv', append=True)
+csvLogger2 = CSVLogger('model2_log.csv', append=True)
 
 comm_msg = Learn()
 comm_msg.instruction = "py2c:waiting4action?"
@@ -30,37 +40,47 @@ action_dim = 3
 
 # Model 0
 model0 = Sequential()
-model0.add(Dense(12, activation='relu', kernel_initializer='uniform', input_dim=nFeatures))
-model0.add(Dense(8, kernel_initializer='uniform', activation='relu'))
-model0.add(Dense(6, kernel_initializer='uniform', activation='relu'))
+model0.add(Dense(12, activation='linear', kernel_initializer='uniform', input_dim=nFeatures))
+model0.add(Dense(8, kernel_initializer='uniform', activation='linear'))
+model0.add(Dense(6, kernel_initializer='uniform', activation='linear'))
 model0.add(Dense(1, kernel_initializer='uniform', activation='linear'))
 
 model0.compile(loss='mean_squared_error', optimizer='sgd', metrics=['accuracy'])
 # Model 1
 model1 = Sequential()
-model1.add(Dense(12, activation='relu', kernel_initializer='uniform', input_dim=nFeatures))
-model1.add(Dense(8, kernel_initializer='uniform', activation='relu'))
-model1.add(Dense(6, kernel_initializer='uniform', activation='relu'))
+model1.add(Dense(12, activation='linear', kernel_initializer='uniform', input_dim=nFeatures))
+model1.add(Dense(8, kernel_initializer='uniform', activation='linear'))
+model1.add(Dense(6, kernel_initializer='uniform', activation='linear'))
 model1.add(Dense(1, kernel_initializer='uniform', activation='linear'))
 
 model1.compile(loss='mean_squared_error', optimizer='sgd', metrics=['accuracy'])
 # Model 2
 model2 = Sequential()
-model2.add(Dense(12, activation='relu', kernel_initializer='uniform', input_dim=nFeatures))
-model2.add(Dense(8, kernel_initializer='uniform', activation='relu'))
-model2.add(Dense(6, kernel_initializer='uniform', activation='relu'))
+model2.add(Dense(12, activation='linear', kernel_initializer='uniform', input_dim=nFeatures))
+model2.add(Dense(8, kernel_initializer='uniform', activation='linear'))
+model2.add(Dense(6, kernel_initializer='uniform', activation='linear'))
 model2.add(Dense(1, kernel_initializer='uniform', activation='linear'))
 
 model2.compile(loss='mean_squared_error', optimizer='sgd', metrics=['accuracy'])
+
+plot_model(model0, to_file='model0.png')
+plot_model(model1, to_file='model1.png')
+plot_model(model2, to_file='model2.png')
 
 print("NN model initialized ...")
 
 def commCallback():
 
+	global csvLogger0
+	global csvLogger1
+	global csvLogger2
+
 	global scan
 	global state
 	global reward
 	global features
+	
+	global episodeN
 
 	try:
 		scan
@@ -87,6 +107,8 @@ def commCallback():
 			reward = response.reward
 			
 			if response.instruction == "c2py:ready4reset":
+				print("Episode ", episodeN, " complete")
+				episodeN = episodeN + 1
 				del state
 				del reward
 				return
@@ -104,13 +126,14 @@ def commCallback():
 			Q_star = max(model0_out, model1_out, model2_out)
 		
 			Q = reward + gamma*(Q_star)
-		
+
+			response.action = 0
 			if response.action == 0:
-				model0.fit(state, Q, epochs=1, batch_size=1, verbose=2)
+				model0.fit(state, Q, epochs=1, batch_size=1, verbose=2, callbacks=[csvLogger0])
 			elif response.action == 1:
-				model1.fit(state, Q, epochs=1, batch_size=1, verbose=2)
+				model1.fit(state, Q, epochs=1, batch_size=1, verbose=2, callbacks=[csvLogger1])
 			elif response.action == 2:
-				model2.fit(state, Q, epochs=1, batch_size=1, verbose=2)
+				model2.fit(state, Q, epochs=1, batch_size=1, verbose=2, callbacks=[csvLogger2])
 
 			time.sleep(2)
 			#raw_input()
@@ -136,6 +159,8 @@ def commCallback():
 			reward = response.reward
 			
 			if response.instruction == "c2py:ready4reset":
+				print("Episode ", episodeN, " complete")
+				episodeN = episodeN + 1
 				del state
 				del reward
 				return
@@ -155,13 +180,13 @@ def commCallback():
 			Q = reward + gamma*(Q_star)
 			
 			if response.action == 0:
-				model0.fit(state, Q, epochs=1, batch_size=1, verbose=2)
+				model0.fit(state, Q, epochs=1, batch_size=1, verbose=2, callbacks=[csvLogger0])
 			elif response.action == 1:
-				model1.fit(state, Q, epochs=1, batch_size=1, verbose=2)
+				model1.fit(state, Q, epochs=1, batch_size=1, verbose=2, callbacks=[csvLogger1])
 			elif response.action == 2:
-				model2.fit(state, Q, epochs=1, batch_size=1, verbose=2)
+				model2.fit(state, Q, epochs=1, batch_size=1, verbose=2, callbacks=[csvLogger2])
 				
-			print("Q(s,a) (calculated) = ", Q)
+			#print("Q(s,a) (calculated) = ", Q)
 			#print("Q(s',a*) = max [", model0_out, model1_out, model2_out, "]")
 			
 			time.sleep(2)
