@@ -1,5 +1,5 @@
-# vision_pkg
-Code For Thesis
+# learning_pkg
+Code For Thesis with Reinforcement Learning
 
 figure_eight.launch : launches mavros, figure_eight_node, vicon_remap
   figure_eight_node : quadrotor hovers at initial point in A mode while going for figure eight from initial point when B is pressed
@@ -36,7 +36,7 @@ traj_gen :    logFile location to save the flight logs
 waypoints2collision : camOffset saves camera offset from the robot origin to ensure safety radius is at right location around the robot
 		      dplane, dprojections in findescape to set the location of the rectagular sheild
 										  
-				
+Python scripts				
 
-
+learn_node : Script to take the features and send an action through the ROS service client architecture. It runs the keras library functions to implement epsilon greedy policy for the reinforcement learning agent 
 
